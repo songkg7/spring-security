@@ -1,6 +1,7 @@
 package com.inflearn.springsecurity.config;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
@@ -10,22 +11,26 @@ import org.springframework.security.config.annotation.web.configuration.WebSecur
 public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
     @Override
+    protected void configure(AuthenticationManagerBuilder auth) throws Exception {
+        auth.inMemoryAuthentication().withUser("user").password("{noop}1234!").roles("USER");
+        auth.inMemoryAuthentication().withUser("sys").password("{noop}1234!").roles("SYS", "USER");
+        auth.inMemoryAuthentication().withUser("admin").password("{noop}1234!").roles("ADMIN", "SYS", "USER");
+    }
+
+    @Override
     protected void configure(HttpSecurity http) throws Exception {
         // 인가 정책
         http
                 .authorizeRequests()
+//                .antMatchers("/**").hasIpAddress("0:0:0:0:0:0:0:1")
+                .antMatchers("/user").hasRole("USER")
+                .antMatchers("/admin/pay").hasRole("ADMIN")
+                .antMatchers("/admin/**").access("hasRole('ADMIN') or hasRole('SYS')")
                 .anyRequest().authenticated();
 
         // 인증 정책
         http
                 .formLogin();
-
-        // 동시세션제어
-        http
-                .sessionManagement()
-                // .sessionFixation().none() // 세션 고정 보호 해제, 보안에 취약해지기 때문에 기본값은 changeSessionId 로 되어 있다.
-                .maximumSessions(1)
-                .maxSessionsPreventsLogin(true);  // default false
 
     }
 
